@@ -4,6 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ArrowRight, CaretDown, Check, MagnifyingGlass } from "@phosphor-icons/react";
 import { AU, BR, CA, DE, ES, FR, GB, IN, NL, PL, SE, US } from "country-flag-icons/react/3x2";
 import Link from "next/link";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/cn";
 
 export type Country = {
@@ -51,6 +52,7 @@ export function CountryPicker({ value, onChange, align = "start", className }: C
     setInternal(c);
     onChange?.(c);
   };
+  const reduce = useReducedMotion();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -121,9 +123,23 @@ export function CountryPicker({ value, onChange, align = "start", className }: C
           onClick={() => (open ? setOpen(false) : openList())}
           className="flex h-12 flex-1 items-center gap-3 rounded-[14px] px-3 text-left transition-colors duration-[var(--hover-out)] hover:bg-paper hover:duration-[var(--hover-in)]"
         >
-          <SelectedFlag className="h-[18px] w-[27px] shrink-0 rounded-[3px] shadow-[0_0_0_1px_rgba(22,23,28,0.08)]" />
-          <span className="flex-1 truncate text-[15px] font-medium text-ink">{selected.name}</span>
-          <span className="font-mono text-[13px] text-ink-3">{selected.dial}</span>
+          {/* a new country rolls up into place, so picking one (here or from the chips below) reads as a change */}
+          <span className="relative flex min-w-0 flex-1 overflow-hidden">
+            <AnimatePresence mode="popLayout" initial={false}>
+              <motion.span
+                key={selected.code}
+                className="flex min-w-0 flex-1 items-center gap-3"
+                initial={reduce ? { opacity: 0 } : { opacity: 0, y: "70%" }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduce ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0, y: "-70%", transition: { duration: 0.14 } }}
+                transition={{ duration: 0.24, ease: [0, 0, 0.2, 1] }}
+              >
+                <SelectedFlag className="h-[18px] w-[27px] shrink-0 rounded-[3px] shadow-[0_0_0_1px_rgba(22,23,28,0.08)]" />
+                <span className="flex-1 truncate text-[15px] font-medium text-ink">{selected.name}</span>
+                <span className="font-mono text-[13px] text-ink-3">{selected.dial}</span>
+              </motion.span>
+            </AnimatePresence>
+          </span>
           <CaretDown
             size={14}
             weight="bold"

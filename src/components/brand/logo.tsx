@@ -71,8 +71,10 @@ export function Logo({
 }) {
   const s = { sm: ["h-6 w-6", "text-[19px]"], md: ["h-8 w-8", "text-[24px]"], lg: ["h-12 w-12", "text-[36px]"] }[size];
   return (
-    <span className={cn("inline-flex items-center gap-2", className)}>
-      <Mark variant={variant} className={s[0]} />
+    // Baseline-aligned: the svg's bottom edge sits on the text baseline, then drops 20% so the bubble's
+    // bottom (y 32 of 40) lands on it and the beak hangs below like the q's descender.
+    <span className={cn("inline-flex items-baseline gap-2", className)}>
+      <Mark variant={variant} className={cn(s[0], "translate-y-[20%]")} />
       <span className={cn("font-display font-medium leading-none tracking-[-0.03em] text-ink", s[1])}>quackr</span>
     </span>
   );

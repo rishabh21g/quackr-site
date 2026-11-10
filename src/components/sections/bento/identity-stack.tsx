@@ -79,7 +79,7 @@ export function IdentityStack() {
           <p className="whitespace-nowrap font-mono text-[clamp(13px,6.4cqw,18px)] font-medium leading-tight tracking-[0.08em] tabular-nums text-paper">
             <span className="sr-only">Card number {shown ? NUMBER : "hidden, ending 7390"}</span>
             <span aria-hidden="true">
-              <SlotText value={shown ? NUMBER : MASKED} duration={0.5} stagger={0.018} spins={0} align="start" />
+              <SlotText value={shown ? NUMBER : MASKED} duration={0.5} stagger={0} spins={0} align="start" />
             </span>
           </p>
 

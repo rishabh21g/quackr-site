@@ -362,7 +362,7 @@ function DecoyPhone({
       <div className="flex h-full flex-col pb-5">
         <div className="px-4 pt-[48px]">
           <div className="mb-2 flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-duck-soft px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-2">
+            <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-duck-soft px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-2">
               <Duck className="h-3.5 w-3.5" />
               <span className="mr-[-0.06em]">Decoy number</span>
             </span>

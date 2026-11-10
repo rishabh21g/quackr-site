@@ -51,12 +51,21 @@ export function HeroDemo() {
                   type="button"
                   onClick={() => choose(c)}
                   aria-pressed={active}
-                  className={`relative inline-flex h-8 items-center gap-1.5 rounded-full border px-2.5 after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-[''] transition-colors duration-[var(--hover-out)] hover:duration-[var(--hover-in)] active:translate-y-px ${
-                    active ? "border-ink/25 bg-surface text-ink" : "border-line text-ink-2 hover:border-line-strong hover:text-ink"
+                  className={`relative inline-flex h-8 items-center gap-1.5 rounded-full border border-line px-2.5 after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-[''] transition-colors duration-[var(--hover-out)] hover:duration-[var(--hover-in)] active:translate-y-px ${
+                    active ? "text-ink" : "text-ink-2 hover:border-line-strong hover:text-ink"
                   }`}
                 >
-                  <Flag className="h-[11px] w-[16px] rounded-[2px] shadow-[0_0_0_1px_rgba(22,23,28,0.08)]" />
-                  {c.code}
+                  {/* one pill slides between the chips instead of each chip snapping its own fill */}
+                  {active && (
+                    <motion.span
+                      layoutId="popular-pill"
+                      aria-hidden
+                      className="absolute -inset-px rounded-full border border-ink/25 bg-surface shadow-[0_1px_2px_rgba(22,23,28,0.06)]"
+                      transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 520, damping: 38 }}
+                    />
+                  )}
+                  <Flag className="relative h-[11px] w-[16px] rounded-[2px] shadow-[0_0_0_1px_rgba(22,23,28,0.08)]" />
+                  <span className="relative">{c.code}</span>
                 </button>
               );
             })}
