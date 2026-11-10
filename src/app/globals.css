@@ -209,7 +209,16 @@ body::after {
 .sms-feed {
   --slot: 84px;
   position: relative;
-  mask-image: linear-gradient(to bottom, #000 72%, transparent 96%);
+}
+/* The bottom fade is a paper overlay, not a mask: a mask over animating cards makes the GPU re-render and re-mask
+   the whole feed every frame, which low-end phones feel while scrolling. The screen is bg-paper, so it matches. */
+.sms-feed::after {
+  content: "";
+  position: absolute;
+  inset: 72% 0 0 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--paper) 86%);
 }
 .sms-card {
   position: absolute;
@@ -230,14 +239,28 @@ body::after {
   84%, 100% { transform: translateY(calc(var(--slot) * 4)); opacity: 0; }
 }
 
-/* The code flashes brighter for a beat when its message arrives. */
+/* The code flashes brighter for a beat when its message arrives. Only the flash layer's opacity animates:
+   animating background and box-shadow repainted the chip, its card and the phone's whole screen every frame. */
 .sms-code {
+  position: relative;
+  isolation: isolate;
+  background: var(--duck-soft);
+}
+.sms-code::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--duck);
+  box-shadow: 0 0 0 3px rgba(255, 212, 59, 0.45);
+  opacity: 0;
   animation: sms-code 15s infinite;
   animation-delay: calc(var(--i) * -3s);
 }
 @keyframes sms-code {
-  0%, 3%  { background: var(--duck); box-shadow: 0 0 0 3px rgba(255, 212, 59, 0.45); }
-  14%, 100% { background: var(--duck-soft); box-shadow: 0 0 0 0 rgba(255, 212, 59, 0); }
+  0%, 3% { opacity: 1; }
+  14%, 100% { opacity: 0; }
 }
 
 /* "Listening" row under the feed: three dots pulse in turn and a highlight sweeps the label. CSS rather than JS
@@ -250,11 +273,11 @@ body::after {
   animation: listen-dot 1.2s ease-in-out infinite;
 }
 @keyframes listen-sweep {
-  from { background-position-x: 100%; }
-  to { background-position-x: -150%; }
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 .listen-sweep {
-  animation: listen-sweep 2.4s linear infinite;
+  animation: listen-sweep 2.4s ease-in-out infinite;
 }
 
 /* Floating proof chips bob gently. `translate` composes with the scroll drift and fade-in that motion sets on `transform`. */
@@ -268,7 +291,7 @@ body::after {
 
 /* House rule: nothing loops off screen. The hero stage sets data-paused once it scrolls away. */
 [data-paused] .sms-card,
-[data-paused] .sms-code,
+[data-paused] .sms-code::before,
 [data-paused] .live-dot::after,
 [data-paused] .listen-dot,
 [data-paused] .listen-sweep,
@@ -291,7 +314,7 @@ body::after {
     animation: none;
     transform: translateY(calc(var(--i) * var(--slot)));
   }
-  .sms-code,
+  .sms-code::before,
   .idle,
   .live-dot::after,
   .listen-dot,

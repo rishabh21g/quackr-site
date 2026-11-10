@@ -422,12 +422,12 @@ function ListeningRow() {
   return (
     <div className="mx-3 mt-1 flex items-center gap-2 rounded-2xl border border-dashed border-line-strong/70 px-3 py-2.5 text-[12px]">
       <span className="flex gap-[3px]" aria-hidden>
-        {/* CSS loops (globals.css .listen-dot / .listen-sweep): no per-frame JS, and they pause with the stage. */}
+        {/* CSS loops (globals.css .listen-dot / .listen-sweep): opacity only, so no per-frame JS or paint, and they pause with the stage. */}
         {[0, 1, 2].map((d) => (
           <span key={d} className="listen-dot h-1 w-1 rounded-full bg-ink-3" style={{ animationDelay: `${d * 0.18}s` }} />
         ))}
       </span>
-      <span className="listen-sweep bg-[linear-gradient(90deg,var(--ink-3)_0%,var(--ink-3)_40%,var(--ink)_50%,var(--ink-3)_60%,var(--ink-3)_100%)] bg-[length:250%_100%] bg-clip-text text-transparent">
+      <span className="listen-sweep text-ink-2">
         Listening for the next code
       </span>
     </div>
