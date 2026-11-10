@@ -45,6 +45,14 @@ function useReducedFlag() {
   return !!useReducedMotion() && hydrated;
 }
 
+/**
+ * Touch screens skip the motion blur. An animated filter re-rasters every reel on every frame, and reels spin as the
+ * visitor scrolls sections into view, which is exactly when a phone has no frame budget to spare. At up to 2.4px for
+ * a fraction of a second, nobody misses it on a small screen. Looked up once, lazily (never during SSR).
+ */
+let touchOnly: boolean | undefined;
+const skipBlur = () => (touchOnly ??= typeof window !== "undefined" && window.matchMedia("(hover: none)").matches);
+
 const classOf = (char: string) => DIGITS.includes(char) ? DIGITS : LOWER.includes(char) ? LOWER : UPPER.includes(char) ? UPPER : null;
 
 /** Deterministic shuffle so the same change always spins the same letters. */
@@ -108,7 +116,7 @@ function Reel({ char, order, entering, rising, duration, stagger, spins, reduced
 
   const blur = useTransform(useVelocity(pos), velocity => {
     const amount = Math.min(Math.abs(velocity) * .05, 2.4);
-    return amount < .15 ? "none" : `blur(${amount.toFixed(2)}px)`;
+    return amount < .15 || skipBlur() ? "none" : `blur(${amount.toFixed(2)}px)`;
   });
   // Cells are taller than the line, so the neighbours of a landed glyph sit fully outside the window.
   const y = useTransform(pos, value => `translate3d(0, ${(-value * CELL).toFixed(4)}em, 0)`);

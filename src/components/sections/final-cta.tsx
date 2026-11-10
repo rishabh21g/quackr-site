@@ -48,7 +48,8 @@ export function FinalCta() {
       {/* The phone rises out of the clouds. This wrapper clips the phone's lower half, not the picker. */}
       <div className="relative mt-14 h-[340px] sm:mt-16 sm:h-[380px]">
         <div aria-hidden className="absolute inset-x-0 top-0 mx-auto h-full w-[260px] overflow-hidden sm:w-[280px]">
-          <motion.div style={reduce ? undefined : { y }} className="absolute inset-x-[10px] top-[56px]">
+          {/* will-change: y tracks scroll every frame; its own layer makes that a compositor move, not a repaint of the phone. */}
+          <motion.div style={reduce ? undefined : { y }} className="absolute inset-x-[10px] top-[56px] will-change-transform">
             <Duck grounded className="absolute -top-[52px] left-1/2 h-[64px] w-[68px] -translate-x-1/2" />
             <PhoneFrame finish="paper" className="w-full shadow-[var(--shadow-phone)]">
               <div className="px-3 pt-[50px]">

@@ -18,7 +18,14 @@ export function MobileCta() {
   const [blocked, setBlocked] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > SHOW_AFTER);
+    // Only touch React state when the threshold is crossed, not on every scroll event.
+    let past: boolean | null = null;
+    const onScroll = () => {
+      const next = window.scrollY > SHOW_AFTER;
+      if (next === past) return;
+      past = next;
+      setScrolled(next);
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);

@@ -13,9 +13,9 @@ import { OtpDisplay } from "./otp-field";
 import { PhoneFieldDisplay, type PhoneCountry } from "./phone-field";
 
 /*
-  "The swap": one generic sign-up card, told in beats. The parent owns the beat (scroll on desktop, the step in view on
-  smaller screens); this card only renders it. Every slot is always rendered, so the card never changes size between
-  beats. Only opacity, transform and filter move.
+  "The swap": one generic sign-up card, told in beats. The parent owns the beat (its playback once the card is on
+  screen); this card only renders it. Every slot is always rendered, so the card never changes size between beats.
+  Only opacity, transform and filter move.
 
   scene 0 · pick a country   0 rest: the field is focused and wants your real number
                              1 the country rolls from +1 to +44
@@ -140,7 +140,7 @@ export function SignupSwap({ beat, className }: { beat: number; className?: stri
           <motion.span
             className="block"
             initial={false}
-            animate={locked ? { opacity: 0.5, filter: "blur(2.5px)" } : { opacity: 1, filter: "blur(0px)" }}
+            animate={locked ? { opacity: 0.5, filter: "blur(2.5px)" } : { opacity: 1, filter: "blur(0px)", transitionEnd: { filter: "none" } }}
             transition={tw(reduce, 0.4, locked ? 0.25 : 0)}
           >
             {REAL}

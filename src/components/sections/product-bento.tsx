@@ -9,7 +9,6 @@ import { Terminal } from "@/components/art/terminal";
 import { Container } from "@/components/ui/container";
 import { Reveal, RevealItem } from "@/components/ui/reveal";
 import { SectionHeading } from "@/components/ui/section-heading";
-import { SnapRail } from "@/components/ui/snap-rail";
 import { cn } from "@/lib/cn";
 import { ease } from "@/lib/motion";
 import { IdentityStack } from "./bento/identity-stack";
@@ -21,7 +20,7 @@ import { WorldCoverage } from "./bento/world-coverage";
   The product in five tiles. Each tile carries one tiny live widget that acts the
   feature out, then a serif title, one line, and a link. Widgets only run while
   they are on screen and show a still end state under reduced motion.
-  Below md the tiles become a sideways snap rail, so each widget keeps its size.
+  Below md the tiles stack in a single column.
 */
 
 /* ---------- a) Free public numbers ---------- */
@@ -142,11 +141,11 @@ type TileProps = {
 function Tile({ title, line, href, widget, tall, className }: TileProps) {
   return (
     <RevealItem className={cn("h-full min-w-0", className)}>
-      <article className="group/tile flex h-full flex-col rounded-[24px] border border-line bg-surface transition-[translate,box-shadow] duration-[var(--hover-out)] ease-[var(--ease-standard)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)] hover:duration-[var(--hover-in)] motion-reduce:hover:translate-y-0">
+      <article className="group/tile flex h-full flex-col rounded-[24px] border border-line bg-surface">
         <div
           className={cn(
             "flex items-center justify-center overflow-hidden rounded-t-[23px] border-b border-line bg-paper/70 px-4 py-6 sm:px-6",
-            // Every slide is the same height on the mobile rail; the grid sets its own rhythm from md.
+            // Every tile is the same height in the mobile stack; the grid sets its own rhythm from md.
             tall ? "h-[300px] sm:h-[320px]" : "h-[300px] sm:h-[320px] md:h-[280px]",
           )}
         >
@@ -181,14 +180,13 @@ export function ProductBento() {
           />
         </Reveal>
 
-        <Reveal group className="mt-14 sm:mt-16">
-          <SnapRail
-            label="What you get"
-            className={cn(
-              "md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-6 lg:gap-5",
-              "lg:[&>div:nth-child(-n+2)]:col-span-3 lg:[&>div:nth-child(n+3)]:col-span-2 md:[&>div:nth-child(5)]:col-span-2",
-            )}
-          >
+        <Reveal
+          group
+          className={cn(
+            "mt-14 grid gap-4 sm:mt-16 md:grid-cols-2 lg:grid-cols-6 lg:gap-5",
+            "lg:[&>div:nth-child(-n+2)]:col-span-3 lg:[&>div:nth-child(n+3)]:col-span-2 md:[&>div:nth-child(5)]:col-span-2",
+          )}
+        >
             <Tile
               tall
               title="Free public numbers"
@@ -221,7 +219,6 @@ export function ProductBento() {
               href="#developers"
               widget={<Terminal className="max-w-[460px]" />}
             />
-          </SnapRail>
         </Reveal>
       </Container>
     </section>

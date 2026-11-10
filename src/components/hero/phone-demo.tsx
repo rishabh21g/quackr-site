@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
+import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 import {
   AmazonLogo,
@@ -18,10 +18,8 @@ import {
   AnimatePresence,
   motion,
   useAnimate,
-  useMotionValue,
   useReducedMotion,
   useScroll,
-  useSpring,
   useInView,
   useTransform,
   type MotionValue,
@@ -58,7 +56,7 @@ const BLANK = (n: string) => n.replace(/\d/g, "0");
  * real phone, tilted behind it, stays silent. The decoy's number rolls into place
  * on load and again whenever the visitor picks a new country.
  *
- * Small things to notice: the phones drift with the cursor at two depths, the duck
+ * Small things to notice: the phones settle from a tilt as you scroll, the duck
  * hops each time a code lands (and quacks on hover), the proof chip names the app
  * that just texted, and the decoy's count climbs while the real phone stays at zero.
  */
@@ -72,29 +70,17 @@ export function PhoneDemo({ number, onRefresh }: { number: string; onRefresh?: (
   const realRotate = useTransform(scrollYProgress, [0.25, 0.75], [7, 3]);
   const lift = useTransform(scrollYProgress, [0.25, 0.75], [0, -36]);
 
-  // Cursor parallax: the decoy (closer) moves more than the real phone (further back).
-  const px = useSpring(useMotionValue(0), { stiffness: 120, damping: 20 });
-  const py = useSpring(useMotionValue(0), { stiffness: 120, damping: 20 });
-  const decoyX = useTransform(px, (v) => v * 14);
-  const decoyY = useTransform([lift, py], ([l, v]: number[]) => l + v * 10);
   // As the hero scrolls away the real phone slides in behind the decoy, so the pair closes up.
-  const converge = useTransform(scrollYProgress, [0.25, 0.75], [0, -28]);
-  const realX = useTransform([px, converge], ([v, c]: number[]) => v * -7 + c);
+  const realX = useTransform(scrollYProgress, [0.25, 0.75], [0, -28]);
+  const realY = useTransform(lift, (l) => l * 0.8);
   // Chips sit "nearer" than the phones, so they drift up faster: cheap depth.
   const chipFar = useTransform(scrollYProgress, [0.2, 0.8], [0, -90]);
   const chipNear = useTransform(scrollYProgress, [0.2, 0.8], [0, -50]);
-  const realY = useTransform([lift, py], ([l, v]: number[]) => l * 0.8 + v * -5);
 
-  function onPointerMove(e: ReactPointerEvent<HTMLDivElement>) {
-    if (reduce || e.pointerType !== "mouse") return;
-    const r = e.currentTarget.getBoundingClientRect();
-    px.set((e.clientX - r.left) / r.width - 0.5);
-    py.set((e.clientY - r.top) / r.height - 0.5);
-  }
-  function onPointerLeave() {
-    px.set(0);
-    py.set(0);
-  }
+  // House rule: nothing loops off screen. Once the stage scrolls away, the CSS feed and dots pause (data-paused) and so
+  // does the beat, so the counters, SlotText reels and shield ripples stop re-rendering while you read further down.
+  // initial: true so the server HTML (and a no-JS visit) never ships the hero frozen; it is above the fold anyway.
+  const onScreen = useInView(stageRef, { initial: true });
 
   // Provision beat: the number starts as zeros, rolls in, and only then goes live.
   // Timers only; the reduced-motion path derives its state instead of setting it.
@@ -112,29 +98,50 @@ export function PhoneDemo({ number, onRefresh }: { number: string; onRefresh?: (
   const shown = reduce ? number : rolled;
   const live = !!reduce || liveFor === number;
 
-  // One beat per landed SMS.
+  // One beat per landed SMS. When paused, the time left in the current beat is kept and the next tick resumes from
+  // there, because the CSS feed resumes mid-cycle too; restarting a fresh 3s interval would drift out of sync.
   const [beat, setBeat] = useState(0);
+  const beatLeft = useRef(BEAT);
   useEffect(() => {
-    if (reduce) return;
-    const t = window.setInterval(() => setBeat((b) => b + 1), BEAT);
-    return () => window.clearInterval(t);
-  }, [reduce]);
+    if (reduce || !onScreen) return;
+    let last = performance.now();
+    let interval = 0;
+    const tick = () => {
+      last = performance.now();
+      setBeat((b) => b + 1);
+    };
+    const first = window.setTimeout(() => {
+      tick();
+      interval = window.setInterval(tick, BEAT);
+    }, beatLeft.current);
+    const startedLeft = beatLeft.current;
+    const started = last;
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(interval);
+      const now = performance.now();
+      // Before the first tick, count down from what was left; after it, from the last tick.
+      const left = last === started ? startedLeft - (now - started) : BEAT - (now - last);
+      beatLeft.current = Math.max(0, Math.min(BEAT, left));
+    };
+  }, [reduce, onScreen]);
   const app = ARRIVALS[beat % ARRIVALS.length];
   const secs = DELIVERY[beat % DELIVERY.length];
 
   return (
     <div
       ref={stageRef}
-      onPointerMove={onPointerMove}
-      onPointerLeave={onPointerLeave}
+      data-paused={onScreen ? undefined : ""}
       className="relative mx-auto h-[660px] w-full max-w-[1100px] [mask-image:linear-gradient(to_bottom,#000_82%,transparent)] sm:h-[740px]"
     >
       <Atmosphere className="top-6" />
 
       {/* real phone, behind */}
+      {/* will-change: the phones' transform moves on every scroll frame; their own layers turn that into a
+          compositor-only move instead of repainting two phones' worth of UI per frame. */}
       <motion.figure
         style={reduce ? { rotate: 4 } : { rotate: realRotate, x: realX, y: realY }}
-        className="absolute left-1/2 top-[146px] hidden w-[236px] translate-x-[18%] sm:block"
+        className="absolute left-1/2 top-[146px] hidden w-[236px] translate-x-[18%] will-change-transform sm:block"
         aria-label="Your real phone stays quiet"
       >
         <RealPhone live={live} beat={beat} count={12 + beat} />
@@ -142,8 +149,8 @@ export function PhoneDemo({ number, onRefresh }: { number: string; onRefresh?: (
 
       {/* decoy phone, in front. Top padding keeps the perched duck inside the mask while it lifts. */}
       <motion.figure
-        style={reduce ? { rotate: -2 } : { rotate: decoyRotate, x: decoyX, y: decoyY }}
-        className="absolute left-1/2 top-[110px] z-10 w-[292px] -translate-x-1/2 sm:-translate-x-[92%]"
+        style={reduce ? { rotate: -2 } : { rotate: decoyRotate, y: lift }}
+        className="absolute left-1/2 top-[110px] z-10 w-[292px] -translate-x-1/2 will-change-transform sm:-translate-x-[92%]"
         aria-label="Your Quackr decoy number receiving verification codes"
       >
         <PerchedDuck beat={beat} />
@@ -242,24 +249,22 @@ function FloatChip({
 }: {
   className?: string;
   delay: number;
-  /** Scroll-linked offset; the outer layer carries it so the idle bob keeps running inside. */
+  /** Scroll-linked offset; the outer layer carries it so the idle bob (CSS .chip-bob) keeps running inside. */
   drift?: MotionValue<number>;
   children: React.ReactNode;
 }) {
   const reduce = useReducedMotion();
   return (
     <motion.div style={drift ? { y: drift } : undefined} className={cn("absolute z-20", className)}>
+    {/* The bob is a CSS loop (pauses off screen with the stage) instead of a JS repeat: Infinity. No backdrop-blur:
+        these chips move every frame, and a 95% paper fill over the soft wash reads the same. */}
     <motion.div
       aria-hidden
-      initial={reduce ? false : { opacity: 0, y: 8 }}
-      animate={reduce ? undefined : { opacity: 1, y: [0, -6, 0] }}
-      transition={{
-        opacity: { duration: 0.5, delay: 0.8 + delay * 0.3 },
-        y: { duration: 5, repeat: Infinity, ease: "easeInOut", delay },
-      }}
-      className={cn(
-        "flex items-center gap-2 whitespace-nowrap rounded-full border border-line bg-surface/90 px-3.5 py-2 text-[13px] shadow-[var(--shadow-card)] backdrop-blur",
-      )}
+      initial={reduce ? false : { opacity: 0 }}
+      animate={reduce ? undefined : { opacity: 1 }}
+      transition={{ opacity: { duration: 0.5, delay: 0.8 + delay * 0.3 } }}
+      style={{ animationDelay: `${delay}s` }}
+      className="chip-bob flex items-center gap-2 whitespace-nowrap rounded-full border border-line bg-surface/95 px-3.5 py-2 text-[13px] shadow-[var(--shadow-card)]"
     >
       {children}
     </motion.div>
@@ -414,26 +419,17 @@ function DecoyPhone({
 
 /** A quiet "still listening" line under the feed, so the inbox never looks finished. */
 function ListeningRow() {
-  const reduce = useReducedMotion();
   return (
     <div className="mx-3 mt-1 flex items-center gap-2 rounded-2xl border border-dashed border-line-strong/70 px-3 py-2.5 text-[12px]">
       <span className="flex gap-[3px]" aria-hidden>
+        {/* CSS loops (globals.css .listen-dot / .listen-sweep): no per-frame JS, and they pause with the stage. */}
         {[0, 1, 2].map((d) => (
-          <motion.span
-            key={d}
-            className="h-1 w-1 rounded-full bg-ink-3"
-            animate={reduce ? undefined : { opacity: [0.25, 1, 0.25] }}
-            transition={{ duration: 1.2, repeat: Infinity, delay: d * 0.18 }}
-          />
+          <span key={d} className="listen-dot h-1 w-1 rounded-full bg-ink-3" style={{ animationDelay: `${d * 0.18}s` }} />
         ))}
       </span>
-      <motion.span
-        className="bg-[linear-gradient(90deg,var(--ink-3)_0%,var(--ink-3)_40%,var(--ink)_50%,var(--ink-3)_60%,var(--ink-3)_100%)] bg-[length:250%_100%] bg-clip-text text-transparent"
-        animate={reduce ? undefined : { backgroundPositionX: ["100%", "-150%"] }}
-        transition={{ duration: 2.4, repeat: Infinity, ease: "linear" }}
-      >
+      <span className="listen-sweep bg-[linear-gradient(90deg,var(--ink-3)_0%,var(--ink-3)_40%,var(--ink)_50%,var(--ink-3)_60%,var(--ink-3)_100%)] bg-[length:250%_100%] bg-clip-text text-transparent">
         Listening for the next code
-      </motion.span>
+      </span>
     </div>
   );
 }

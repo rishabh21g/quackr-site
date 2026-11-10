@@ -9,7 +9,6 @@ import { Container } from "@/components/ui/container";
 import { Reveal, RevealItem } from "@/components/ui/reveal";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { SlotText } from "@/components/ui/slot-text";
-import { SnapRail } from "@/components/ui/snap-rail";
 import { cn } from "@/lib/cn";
 import { ease } from "@/lib/motion";
 
@@ -30,7 +29,7 @@ type Plan = {
 };
 
 // Illustrative prices for the landing page. Real pricing comes from billing before launch.
-// Order matters: the popular plan sits in the centre on md+, and the mobile rail opens on it.
+// Order matters: the popular plan sits in the centre on md+; on mobile it moves to the top of the stack.
 const PLANS: Plan[] = [
   {
     name: "Free",
@@ -73,7 +72,7 @@ const glide: Transition = { type: "spring", visualDuration: 0.34, bounce: 0 };
 
 const swap: Variants = {
   hidden: { opacity: 0, y: "0.45em", filter: "blur(2px)" },
-  shown: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.22, ease: [...ease.enter] } },
+  shown: { opacity: 1, y: 0, filter: "blur(0px)", transitionEnd: { filter: "none" }, transition: { duration: 0.22, ease: [...ease.enter] } },
   gone: { opacity: 0, y: "-0.45em", filter: "blur(2px)", transition: { duration: 0.14, ease: [...ease.standard] } },
 };
 const still: Variants = { hidden: { opacity: 0 }, shown: { opacity: 1, transition: { duration: 0 } }, gone: { opacity: 0, transition: { duration: 0 } } };
@@ -208,7 +207,7 @@ function PlanCard({ plan, billing }: { plan: Plan; billing: Billing }) {
     <article
       className={cn(
         // Hover lifts 2px and deepens the edge, the same as the bento tiles. Static under reduced motion.
-        "relative flex h-full flex-col rounded-[24px] border bg-surface p-7 transition-[translate,box-shadow,border-color] duration-[var(--hover-out)] ease-[var(--ease-standard)] hover:-translate-y-0.5 hover:duration-[var(--hover-in)] motion-reduce:transition-none motion-reduce:hover:translate-y-0 sm:p-8",
+        "relative flex h-full flex-col rounded-[24px] border bg-surface p-6 transition-[box-shadow,border-color] duration-[var(--hover-out)] ease-[var(--ease-standard)] hover:duration-[var(--hover-in)] motion-reduce:transition-none sm:p-8",
         plan.popular
           ? "border-ink shadow-[var(--shadow-card)]"
           : "border-line shadow-[0_1px_2px_rgba(22,23,28,0.04)] hover:border-line-strong hover:shadow-[var(--shadow-card)]",
@@ -224,7 +223,7 @@ function PlanCard({ plan, billing }: { plan: Plan; billing: Billing }) {
       <h3 className="text-[16px] font-medium text-ink">{plan.name}</h3>
       <p className="mt-2 text-[14px] leading-[1.55] text-ink-2">{plan.blurb}</p>
 
-      <div className="mt-7 flex flex-wrap items-end gap-x-2 gap-y-1">
+      <div className="mt-6 flex flex-wrap items-end gap-x-2 gap-y-1 sm:mt-7">
         {plan.lead && <span className="pb-[0.3em] text-[14px] text-ink-3">{plan.lead}</span>}
         <span className="font-mono text-[44px] font-medium leading-none tracking-[-0.04em] text-ink tabular-nums md:text-[36px] lg:text-[44px]">
           <span className="mr-0.5 align-top text-[0.55em] text-ink-2">$</span>
@@ -249,7 +248,7 @@ function PlanCard({ plan, billing }: { plan: Plan; billing: Billing }) {
         {notes.length > 1 ? <StableSwap text={note} candidates={notes} reduced={reduced} /> : note}
       </p>
 
-      <ul className="mt-7 space-y-3 border-t border-line pt-6">
+      <ul className="mt-6 space-y-3 border-t border-line pt-5 sm:mt-7 sm:pt-6">
         {plan.features.map((f) => (
           <li key={f} className="flex items-start gap-2.5 text-[14px] leading-[1.45] text-ink-2">
             <Check size={16} weight="bold" className="mt-[1px] shrink-0 text-ink" aria-hidden />
@@ -258,7 +257,7 @@ function PlanCard({ plan, billing }: { plan: Plan; billing: Billing }) {
         ))}
       </ul>
 
-      <div className="mt-auto pt-8">
+      <div className="mt-auto pt-7 sm:pt-8">
         <ButtonLink href={plan.cta.href} variant={plan.cta.variant} size="lg" className="w-full" arrow={plan.cta.variant === "ink"}>
           {plan.cta.label}
         </ButtonLink>
@@ -285,20 +284,17 @@ export function Pricing() {
           <BillingToggle value={billing} onValueChange={setBilling} />
         </Reveal>
 
-        {/* Mobile: a swipe rail that opens on the popular plan, with Free peeking on the left. md+: three columns, popular raised in the centre. */}
-        <Reveal group gap={0.08} className="mx-auto mt-12 max-w-[1080px]">
-          <SnapRail
-            label="Plans"
-            initial={Math.max(0, PLANS.findIndex((p) => p.popular))}
-            slideClassName="pb-3 pt-4 md:py-0"
-            className="md:grid md:grid-cols-3 md:items-stretch md:gap-4 lg:gap-5"
-          >
-            {PLANS.map((plan) => (
-              <RevealItem key={plan.name} className={cn("h-full", plan.popular && "md:-translate-y-2")}>
-                <PlanCard plan={plan} billing={billing} />
-              </RevealItem>
-            ))}
-          </SnapRail>
+        {/* Mobile: one column, popular plan on top. md+: three columns, popular raised in the centre. */}
+        <Reveal
+          group
+          gap={0.08}
+          className="mx-auto mt-12 grid max-w-[440px] gap-4 md:max-w-[1080px] md:grid-cols-3 md:items-stretch lg:gap-5"
+        >
+          {PLANS.map((plan) => (
+            <RevealItem key={plan.name} className={cn("h-full", plan.popular && "-order-1 md:order-none md:-translate-y-2")}>
+              <PlanCard plan={plan} billing={billing} />
+            </RevealItem>
+          ))}
         </Reveal>
 
         <p className="mt-10 text-center text-[14px] text-ink-3">All plans: no ID, no app, cancel any time.</p>

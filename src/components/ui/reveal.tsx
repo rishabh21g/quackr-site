@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotion, type Variants } from "motion/react";
 import type { ComponentProps } from "react";
-import { ease, inView, reveal, stagger } from "@/lib/motion";
+import { ease, inView, reveal, revealHidden, revealShown, stagger } from "@/lib/motion";
 
 type RevealProps = ComponentProps<typeof motion.div> & {
   /** Stagger direct `RevealItem` children instead of revealing as one block. */
@@ -19,8 +19,8 @@ export function Reveal({ group, gap, delay = 0, children, ...rest }: RevealProps
   const variants: Variants = group
     ? stagger(gap, delay)
     : {
-        hidden: { opacity: 0, y: 12 },
-        show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: ease.enter, delay } },
+        hidden: revealHidden,
+        show: { ...revealShown, transition: { duration: 0.5, ease: ease.enter, delay } },
       };
 
   return (

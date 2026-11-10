@@ -10,9 +10,10 @@ import { smooth } from "@/lib/motion";
 import { Banner, LIVE, Num, flip, useSequence, useSettledReduce, type Mode } from "./shared";
 
 /*
-  A lock screen that fills with spam. Without Quackr, banners land one by one (newest on top, three on
-  screen) and the weekly count climbs; after the first four, a new one keeps arriving every few seconds while
-  the card is on screen. With Quackr, the stack folds into one calm banner and the count rolls to 0.
+  A lock screen that fills with spam. Without Quackr, banners land one by one (newest on top: two in full,
+  the third tucked behind them like an iOS notification stack) and the weekly count climbs; after the first
+  four, a new one keeps arriving every few seconds while the widget is on screen. With Quackr, the stack folds
+  into one calm banner in the middle and the count rolls to 0.
 */
 
 const SPAM = [
@@ -33,7 +34,16 @@ const SPAM = [
 const H = 60; // banner height
 const SLOT = H + 7; // banner + gap
 const SHOWN = 3;
+/** How far the tucked third banner shows below the second. */
+const PEEK = 11;
+const STACK = SLOT + H + PEEK;
+/** Where everything folds to with Quackr: the middle of the stack. */
+const MID = Math.round((STACK - H) / 2);
 const TIMES = ["now", "2m ago", "7m ago"];
+
+/** Slot 0 and 1 in full; slot 2 tucked behind slot 1, smaller and dimmer. */
+const place = (slot: number) =>
+  slot < 2 ? { opacity: 1, y: slot * SLOT, scale: 1 } : { opacity: 0.7, y: SLOT + PEEK, scale: 0.93 };
 const BASE = 43; // this week, before the first one lands
 
 /** The first four land quickly, then one more every few seconds. */
@@ -52,7 +62,7 @@ export function SpamStack({ mode, delay = 0 }: { mode: Mode; delay?: number }) {
 
   return (
     <div ref={ref} className="w-full max-w-[340px]" aria-hidden="true">
-      <div className="mb-3 flex items-end justify-between gap-3 px-1">
+      <div className="mb-2.5 flex items-end justify-between gap-3 px-1">
         <span className="flex items-baseline gap-2">
           <span className="text-[22px] font-semibold leading-none tracking-[-0.02em] tabular-nums text-ink">9:41</span>
           <span className="text-[11.5px] text-ink-3">Lock screen</span>
@@ -70,7 +80,7 @@ export function SpamStack({ mode, delay = 0 }: { mode: Mode; delay?: number }) {
         </span>
       </div>
 
-      <div className="relative" style={{ height: SLOT * (SHOWN - 1) + H }}>
+      <div className="relative" style={{ height: STACK }}>
         <AnimatePresence initial={false}>
           {visible.map((arrival, slot) => {
             const msg = SPAM[arrival % SPAM.length]!;
@@ -80,8 +90,8 @@ export function SpamStack({ mode, delay = 0 }: { mode: Mode; delay?: number }) {
                 className="absolute inset-x-0 top-0"
                 style={{ zIndex: SHOWN - slot }}
                 initial={reduce ? false : { opacity: 0, y: -14, scale: 0.97 }}
-                // With Quackr, every banner folds into the middle slot, the outer ones first.
-                animate={safe ? { opacity: 0, y: SLOT, scale: 0.94 } : { opacity: 1, y: slot * SLOT, scale: 1 }}
+                // With Quackr, every banner folds into the middle, the outer ones first.
+                animate={safe ? { opacity: 0, y: MID, scale: 0.94 } : place(slot)}
                 exit={reduce ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0, scale: 0.96, transition: { duration: 0.25 } }}
                 transition={safe ? flip(reduce, delay + (slot === 1 ? 0.06 : 0), 0.38) : reduce ? { duration: 0 } : smooth}
               >
@@ -102,7 +112,7 @@ export function SpamStack({ mode, delay = 0 }: { mode: Mode; delay?: number }) {
           className="absolute inset-x-0 top-0"
           style={{ zIndex: SHOWN + 1 }}
           initial={false}
-          animate={safe ? { opacity: 1, y: SLOT, scale: 1 } : { opacity: 0, y: SLOT, scale: 0.96 }}
+          animate={safe ? { opacity: 1, y: MID, scale: 1 } : { opacity: 0, y: MID, scale: 0.96 }}
           transition={flip(reduce, safe ? delay + 0.24 : 0, 0.4)}
         >
           <Banner

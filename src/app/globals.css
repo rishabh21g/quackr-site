@@ -90,7 +90,10 @@ body {
 
 /* ---------- Paper grain ----------
    A fixed, very faint fractal-noise layer over the whole page so the paper reads as paper, not as a flat
-   hex. Multiply keeps it invisible on dark bands and only tints light ones. It never takes pointer events. */
+   hex. It never takes pointer events.
+   Perf: no mix-blend-mode. A fixed full-viewport blend layer makes the compositor re-blend the whole screen on
+   every scroll frame (the main cause of mobile scroll jank). At 6% opacity, normal blending of near-black noise
+   lands within one 8-bit level of multiply on both paper and ink, so it looks the same. Own layer, rastered once. */
 body::after {
   content: "";
   position: fixed;
@@ -98,20 +101,20 @@ body::after {
   z-index: 70;
   pointer-events: none;
   opacity: 0.06;
-  mix-blend-mode: multiply;
+  will-change: transform;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.09 0 0 0 0 0.09 0 0 0 0 0.11 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 220px 220px;
 }
 
 /* ---------- Atmosphere ---------- */
 
+/* No filter: blur() here. The closest-side gradients already fade to zero, so an 8px blur added nothing visible
+   but cost a filter pass on large layers inside the hero's mask. */
 .atmo-warm {
   background: var(--atmo-warm);
-  filter: blur(8px);
 }
 .atmo-cool {
   background: var(--atmo-cool);
-  filter: blur(8px);
 }
 
 /* ---------- Marquee (works-with strip) ---------- */
@@ -237,6 +240,42 @@ body::after {
   14%, 100% { background: var(--duck-soft); box-shadow: 0 0 0 0 rgba(255, 212, 59, 0); }
 }
 
+/* "Listening" row under the feed: three dots pulse in turn and a highlight sweeps the label. CSS rather than JS
+   loops, so there is no per-frame JS and they pause with the rest of the hero. */
+@keyframes listen-dot {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+.listen-dot {
+  animation: listen-dot 1.2s ease-in-out infinite;
+}
+@keyframes listen-sweep {
+  from { background-position-x: 100%; }
+  to { background-position-x: -150%; }
+}
+.listen-sweep {
+  animation: listen-sweep 2.4s linear infinite;
+}
+
+/* Floating proof chips bob gently. `translate` composes with the scroll drift and fade-in that motion sets on `transform`. */
+@keyframes chip-bob {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -6px; }
+}
+.chip-bob {
+  animation: chip-bob 5s ease-in-out infinite;
+}
+
+/* House rule: nothing loops off screen. The hero stage sets data-paused once it scrolls away. */
+[data-paused] .sms-card,
+[data-paused] .sms-code,
+[data-paused] .live-dot::after,
+[data-paused] .listen-dot,
+[data-paused] .listen-sweep,
+[data-paused] .chip-bob {
+  animation-play-state: paused;
+}
+
 /* The real phone "breathes" very slightly: alive, but nothing arrives. */
 @keyframes idle {
   0%, 100% { opacity: 0.55; }
@@ -254,7 +293,10 @@ body::after {
   }
   .sms-code,
   .idle,
-  .live-dot::after {
+  .live-dot::after,
+  .listen-dot,
+  .listen-sweep,
+  .chip-bob {
     animation: none;
   }
 }

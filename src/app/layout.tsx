@@ -32,8 +32,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
+    // data-scroll-behavior: globals.css smooth-scrolls in-page anchors; this tells Next 16 to drop it during route
+    // changes, so navigating to /signup (or back) jumps instead of animating the scroll across the whole page.
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       className={`${fraunces.variable} ${inter.variable} ${jetbrains.variable} h-full`}
     >
       <body className="min-h-full flex flex-col">{children}</body>

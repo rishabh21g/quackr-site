@@ -15,10 +15,18 @@ export const snappy: Transition = { type: "spring", stiffness: 520, damping: 34,
 /** Panels, sheets, shared highlights. */
 export const smooth: Transition = { type: "spring", stiffness: 260, damping: 30 };
 
-/** Scroll-in: a 12px rise and fade. */
+/**
+ * Scroll-in: a 12px rise and fade. The rise is a `transform` string rather than `y` on purpose: motion hands
+ * opacity and transform to WAAPI (compositor thread), while `y` is stepped from JS every frame. Reveals fire mid-scroll,
+ * so keeping them off the main thread is what keeps them smooth on phones.
+ */
+export const revealHidden = { opacity: 0, transform: "translateY(12px)" } as const;
+// transitionEnd clears the transform once settled, so a revealed block doesn't keep a stacking context (y: 0 never did).
+export const revealShown = { opacity: 1, transform: "translateY(0px)", transitionEnd: { transform: "none" } } as const;
+
 export const reveal: Variants = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: ease.enter } },
+  hidden: revealHidden,
+  show: { ...revealShown, transition: { duration: 0.5, ease: ease.enter } },
 };
 
 /** Parent variant that staggers its `reveal` children. */

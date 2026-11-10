@@ -31,20 +31,31 @@ export function SiteNav() {
   const menuRef = useRef<HTMLDivElement>(null);
   const wasOpen = useRef(false);
 
-  // The active link is the last section whose top has passed 45% of the viewport.
-  // Looked up on each scroll so sections that mount late (or hot-reload) still count.
-  useMotionValueEvent(scrollY, "change", (y) => {
-    setScrolled(y > 8);
-    const line = window.innerHeight * 0.45;
-    let current: string | null = null;
-    for (const l of LINKS) {
-      const el = document.querySelector(l.href);
-      if (!el) continue;
-      const r = el.getBoundingClientRect();
-      if (r.top <= line && r.bottom > line) current = l.href;
-    }
-    setActive(current);
-  });
+  // Cheap per-frame check: React skips the render unless the boolean flips.
+  useMotionValueEvent(scrollY, "change", (y) => setScrolled(y > 8));
+
+  // The active link is the section crossing a line 45% down the viewport. An IntersectionObserver with a zero-height
+  // root at that line replaces measuring every section with getBoundingClientRect on each scroll frame, which forced
+  // a synchronous layout per frame while scrolling.
+  useEffect(() => {
+    const els = LINKS.map((l) => document.querySelector(l.href)).filter((el): el is Element => !!el);
+    if (!els.length || typeof IntersectionObserver === "undefined") return;
+    const crossing = new Set<Element>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) crossing.add(e.target);
+          else crossing.delete(e.target);
+        }
+        // Last in page order wins, matching the old "last section past the line" rule.
+        const hit = els.filter((el) => crossing.has(el)).at(-1);
+        setActive(hit ? `#${hit.id}` : null);
+      },
+      { rootMargin: "-45% 0px -55% 0px" },
+    );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -94,12 +105,17 @@ export function SiteNav() {
     <header
       className={cn(
         "sticky top-0 z-40 border-b transition-[background-color,border-color] duration-[var(--dur-slow)]",
-        scrolled || open ? "border-line/80 bg-paper/85 backdrop-blur-md" : "border-transparent bg-transparent",
+        // Below md the bar is near-opaque paper with no backdrop-filter: blurring everything that scrolls under a
+        // sticky bar re-renders that blur every frame, which phones can't keep up with.
+        scrolled || open
+          ? "border-line/80 bg-paper/95 md:bg-paper/85 md:backdrop-blur-md"
+          : "border-transparent bg-transparent",
       )}
     >
       <nav
         className={cn(
-          "mx-auto flex max-w-[1200px] items-center gap-6 px-5 transition-[height] duration-[var(--dur-slow)] sm:px-8",
+          // The bar is in flow, so animating its height reflows the whole page each frame; phones get one snap instead.
+          "mx-auto flex max-w-[1200px] items-center gap-6 px-5 duration-[var(--dur-slow)] sm:px-8 md:transition-[height]",
           scrolled ? "h-14" : "h-16",
         )}
         aria-label="Main"
