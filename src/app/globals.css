@@ -1,0 +1,329 @@
+@import "tailwindcss";
+
+/*
+  Design tokens. Every colour has one job:
+  - ink      → text and the single primary button style
+  - duck     → "Quackr / your decoy" (decoy number, highlighted codes, mascot). Never for text.
+  - live     → "code received / live" status only
+  - neutrals → everything else, including third-party app marks
+*/
+:root {
+  --paper: #fbfaf7;
+  --surface: #ffffff;
+  --ink: #16171c;
+  --ink-hover: #2a2c33;
+  --ink-2: #4b4d55;
+  --ink-3: #74767e;
+  --line: #ecebe6;
+  --line-strong: #dad8d0;
+
+  --duck: #ffd43b;
+  --duck-soft: #fff4c7;
+  --duck-deep: #f2b705;
+
+  --live: #16a34a;
+  --live-soft: #dcfce7;
+
+  --danger: #e11d48;
+  --danger-soft: #ffe4e6;
+
+  /* Atmosphere: the only soft washes on the page (hero visual, final CTA). */
+  --atmo-warm: radial-gradient(closest-side, rgba(255, 212, 59, 0.34), rgba(255, 212, 59, 0));
+  --atmo-cool: radial-gradient(closest-side, rgba(176, 196, 222, 0.32), rgba(176, 196, 222, 0));
+
+  /* Motion: hover arrives faster than it leaves; press is instant. */
+  --dur-instant: 80ms;
+  --hover-in: 120ms;
+  --hover-out: 180ms;
+  --dur-slow: 260ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+
+  --shadow-phone: 0 1px 0 rgba(22, 23, 28, 0.04), 0 24px 60px -24px rgba(22, 23, 28, 0.28);
+  --shadow-card: 0 1px 2px rgba(22, 23, 28, 0.06), 0 6px 16px -8px rgba(22, 23, 28, 0.12);
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-hover: var(--ink-hover);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-duck: var(--duck);
+  --color-duck-soft: var(--duck-soft);
+  --color-duck-deep: var(--duck-deep);
+  --color-live: var(--live);
+  --color-live-soft: var(--live-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  /* Serif headlines: optical sizing on, soft terminals, no wonky letterforms, balanced lines. */
+  .font-display {
+    font-optical-sizing: auto;
+    font-variation-settings: "SOFT" 100, "WONK" 0;
+    text-wrap: balance;
+  }
+}
+
+/* ---------- Paper grain ----------
+   A fixed, very faint fractal-noise layer over the whole page so the paper reads as paper, not as a flat
+   hex. Multiply keeps it invisible on dark bands and only tints light ones. It never takes pointer events. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  opacity: 0.06;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.09 0 0 0 0 0.09 0 0 0 0 0.11 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+}
+
+/* ---------- Atmosphere ---------- */
+
+.atmo-warm {
+  background: var(--atmo-warm);
+  filter: blur(8px);
+}
+.atmo-cool {
+  background: var(--atmo-cool);
+  filter: blur(8px);
+}
+
+/* ---------- Marquee (works-with strip) ---------- */
+
+@keyframes marquee {
+  to { transform: translateX(-50%); }
+}
+.marquee-track {
+  animation: marquee 40s linear infinite;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+/* ---------- Ping (globe dots, live states) ---------- */
+
+@keyframes ping-soft {
+  0% { transform: scale(1); opacity: 0.6; }
+  80%, 100% { transform: scale(2.6); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .marquee-track { animation: none; }
+}
+
+/* ---------- Buttons ---------- */
+
+.btn-ink {
+  background: var(--ink);
+  color: #fff;
+  transition:
+    background-color var(--hover-out) var(--ease-standard),
+    transform var(--dur-instant) var(--ease-standard);
+}
+.btn-ink:hover {
+  background: var(--ink-hover);
+  transition-duration: var(--hover-in), var(--dur-instant);
+}
+.btn-ink:active {
+  transform: translateY(1px);
+}
+
+.link-arrow svg {
+  transition: transform var(--hover-out) var(--ease-standard);
+}
+.link-arrow:hover svg {
+  transform: translateX(2px);
+  transition-duration: var(--hover-in);
+}
+
+/* Hero copy rises in on first paint; CSS so it works before hydration. */
+@keyframes hero-in {
+  from { opacity: 0; transform: translateY(12px); }
+}
+.hero-in {
+  animation: hero-in 0.6s var(--ease-enter) both;
+}
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+
+/* ---------- Live dot ---------- */
+
+@keyframes live-ping {
+  0% { transform: scale(1); opacity: 0.55; }
+  80%, 100% { transform: scale(2.4); opacity: 0; }
+}
+.live-dot {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--live);
+}
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--live);
+  animation: live-ping 1.8s var(--ease-enter) infinite;
+}
+
+/*
+  ---------- SMS feed ----------
+  One shared 15s loop, five cards, each offset by a negative delay (-3s × index),
+  so the feed is already full on first paint. Every 3s a new code lands at the top
+  and the older ones step down one slot, then fade out at the bottom.
+*/
+.sms-feed {
+  --slot: 84px;
+  position: relative;
+  mask-image: linear-gradient(to bottom, #000 72%, transparent 96%);
+}
+.sms-card {
+  position: absolute;
+  inset: 0 0 auto 0;
+  animation: sms-feed 15s infinite;
+  animation-delay: calc(var(--i) * -3s);
+}
+@keyframes sms-feed {
+  0%   { transform: translateY(-20px) scale(0.96); opacity: 0; animation-timing-function: var(--ease-standard); }
+  4%   { transform: translateY(0) scale(1); opacity: 1; }
+  20%  { transform: translateY(0); animation-timing-function: var(--ease-standard); }
+  24%  { transform: translateY(var(--slot)); }
+  40%  { transform: translateY(var(--slot)); animation-timing-function: var(--ease-standard); }
+  44%  { transform: translateY(calc(var(--slot) * 2)); }
+  60%  { transform: translateY(calc(var(--slot) * 2)); animation-timing-function: var(--ease-standard); }
+  64%  { transform: translateY(calc(var(--slot) * 3)); opacity: 1; }
+  80%  { transform: translateY(calc(var(--slot) * 3)); opacity: 1; animation-timing-function: var(--ease-standard); }
+  84%, 100% { transform: translateY(calc(var(--slot) * 4)); opacity: 0; }
+}
+
+/* The code flashes brighter for a beat when its message arrives. */
+.sms-code {
+  animation: sms-code 15s infinite;
+  animation-delay: calc(var(--i) * -3s);
+}
+@keyframes sms-code {
+  0%, 3%  { background: var(--duck); box-shadow: 0 0 0 3px rgba(255, 212, 59, 0.45); }
+  14%, 100% { background: var(--duck-soft); box-shadow: 0 0 0 0 rgba(255, 212, 59, 0); }
+}
+
+/* The real phone "breathes" very slightly: alive, but nothing arrives. */
+@keyframes idle {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.8; }
+}
+.idle {
+  animation: idle 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-in { animation: none; }
+  .sms-card {
+    animation: none;
+    transform: translateY(calc(var(--i) * var(--slot)));
+  }
+  .sms-code,
+  .idle,
+  .live-dot::after {
+    animation: none;
+  }
+}
+
+/* ---------- Micro-interactions (pass 1) ---------- */
+/* See docs/micro-interactions.md for the map and the house rules these follow. */
+
+/* Leading icons inside a .link-arrow control (e.g. the Google G) stay put; only trailing arrows nudge. */
+.link-arrow:hover [data-no-nudge],
+.link-arrow:hover svg[data-no-nudge] {
+  transform: none;
+}
+
+/* Back links: the arrow nudges toward where you're going, i.e. left. */
+.link-arrow-back svg {
+  transition: transform var(--hover-out) var(--ease-standard);
+}
+.link-arrow-back:hover svg {
+  transform: translateX(-2px);
+  transition-duration: var(--hover-in);
+}
+
+/* Text links: a 1px underline grows from the left on hover or keyboard focus. Put it on the label span. */
+.mi-underline {
+  position: relative;
+}
+.mi-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--hover-out) var(--ease-standard);
+}
+a:hover .mi-underline::after,
+a:focus-visible .mi-underline::after,
+a:active .mi-underline::after {
+  transform: scaleX(1);
+  transition-duration: var(--hover-in);
+}
+
+/* One duck flash when a code arrives or is copied: bright duck with a soft ring, settling to the chip's own fill. */
+@keyframes mi-code-flash {
+  from {
+    background-color: var(--duck);
+    box-shadow: 0 0 0 3px rgba(255, 212, 59, 0.45);
+  }
+}
+.mi-code-flash {
+  animation: mi-code-flash 900ms var(--ease-enter) backwards;
+}
+.mi-code-panel:has([data-state="copied"]) .mi-code-chip {
+  animation: mi-code-flash 900ms var(--ease-enter);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link-arrow-back svg,
+  .mi-underline::after {
+    transition: none;
+  }
+  .link-arrow-back:hover svg {
+    transform: none;
+  }
+  .mi-code-flash,
+  .mi-code-panel:has([data-state="copied"]) .mi-code-chip {
+    animation: none;
+  }
+}
